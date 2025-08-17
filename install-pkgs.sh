@@ -51,28 +51,36 @@ install_package() {
 }
 
 if ! command -v yay &>/dev/null; then
-  echo "Yay is not installed. Installing it now..."
+  echo "Yay is not installed. It is highly recommended to use an AUR helper like yay to install packages from the Arch User Repository."
+  read -p "Do you want to build and install yay? (y/N) " -n 1 -r
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "Installing yay now..."
+    sudo pacman -Sy --needed --noconfirm base-devel
 
-  sudo pacman -Sy --needed --noconfirm base-devel
+    (
+      cd /tmp || exit
+      git clone https://aur.archlinux.org/yay-bin.git
+      cd yay-bin || exit
+      makepkg -si --noconfirm
+    )
 
-  (
-    cd /tmp || exit
-    git clone https://aur.archlinux.org/yay-bin.git
-    cd yay-bin || exit
-    makepkg -si --noconfirm
-  )
+    rm -rf /tmp/yay-bin
 
-  rm -rf /tmp/yay-bin
-
-  if ! command -v yay &>/dev/null; then
-    echo "Failed to install yay. Exiting."
-    exit 1
+    if ! command -v yay &>/dev/null; then
+      echo "Failed to install yay. Exiting."
+      exit 1
+    fi
+  else
+    echo "Installation of yay skipped. Packages from the AUR will not be installed."
   fi
 fi
 
 echo "Updating package databases..."
 sudo pacman -Sy
-yay -Syy
+if command -v yay &>/dev/null; then
+  yay -Syy
+fi
 
 for program in "${programs[@]}"; do
   install_package "$program"
